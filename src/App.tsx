@@ -1,35 +1,177 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useEffect, useState } from "react";
+import logo from "./assets/logo-universal.png";
+import { toast } from "sonner";
+import axios from "axios";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <Button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </Button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+interface Message {
+  id: number;
+  hash: string;
+  content: string;
+  name: string;
+  timestamp: number;
+  isStored: boolean;
+  wakuTimestamp: number;
 }
 
-export default App
+const SERVICE_ENDPOINT = "http://127.0.0.1:8645";
+const PUBSUB_TOPIC = "waku/2/rs/1/0";
+
+function App() {
+  const [newMessageHash, setNewMessageHash] = useState(
+    "Please enter your message below 👇"
+  );
+  const [newMessage, setNewMessage] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameInput, setUsernameInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateMessage = (e: any) => setNewMessage(e.target.value);
+
+  useEffect(() => {
+    console.log("in init effect");
+
+    // EventsOn("newMessage", (msg: Message) => {
+    //   setMessages((prev) => [msg, ...prev]);
+    // });
+    // EventsOn("isOnline", (isOnline: boolean) => {
+    //   if (isOnline) {
+    //     toast.success("You are online.");
+    //   } else {
+    //     toast.warning("You are offline.");
+    //   }
+    // });
+
+    const init = async () => {
+      const name = await GetUser();
+      setUsername(name);
+    };
+    init();
+
+    // return () => {
+    //   EventsOff("newMessage");
+    //   EventsOff("isOnline");
+    // };
+  }, []);
+
+  const CreateUser = async (name: string) => {
+    console.log("creating user");
+    localStorage.setItem("username", name);
+    return name;
+  };
+
+  const GetUser = async () => {
+    const name = localStorage.getItem("username");
+    return name || "";
+  };
+
+  const Send = async (content: string) => {
+    console.log("sending message");
+    const message = {
+      payload: content,
+      contentTopic: "/my-app/2/chatroom-1/proto",
+    };
+    console.log(JSON.stringify(message));
+    const response = await axios.post(
+      `${SERVICE_ENDPOINT}/relay/v1/auto/messages`,
+      JSON.stringify(message),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  };
+
+  const sendMessage = async () => {
+    if (!username || !newMessage) {
+      toast.warning("Username or message is empty.");
+      return;
+    }
+    try {
+      let result = await Send(newMessage);
+      console.log("result", result);
+      setNewMessageHash(result);
+      setNewMessage("");
+    } catch (err) {
+      toast.error(`Error happens: ${err}`);
+    }
+  };
+
+  const createUser = async () => {
+    try {
+      const name = await CreateUser(usernameInput);
+      setUsername(name);
+      toast("User has been created.");
+    } catch (err) {
+      toast.error(`Error happens: ${err}`);
+    }
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString();
+  };
+
+  return (
+    <div className="flex flex-col gap-10 items-center justify-center h-screen">
+      <img height={100} width={100} src={logo} alt="logo" />
+
+      <div className="absolute right-16 top-6 flex flex-row gap-2 items-center">
+        <Label className="">Hello, {username}</Label>
+      </div>
+
+      {!username && (
+        <div className="flex w-full max-w-sm items-center space-x-2">
+          <Input
+            value={usernameInput}
+            onChange={(e) => setUsernameInput(e.target.value)}
+            placeholder="Enter your username"
+            autoComplete="off"
+            autoCorrect="off"
+          />
+          <Button className="w-32" onClick={createUser}>
+            Create
+          </Button>
+        </div>
+      )}
+
+      {username && (
+        <div className="flex flex-col gap-10 items-center">
+          <div className="flex w-full max-w-sm items-center space-x-2">
+            <Input
+              value={newMessage}
+              onChange={updateMessage}
+              placeholder="Input your message"
+              autoComplete="off"
+              autoCorrect="off"
+            />
+            <Button className="w-32" onClick={sendMessage}>
+              Send
+            </Button>
+          </div>
+
+          <div>
+            <h1 className="text-xl font-bold mb-2">Message History</h1>
+            <ScrollArea className="h-[300px] w-[550px] rounded-md border p-4 bg-gray-100">
+              <ul className="text-sm">
+                {messages.map((msg, index) => (
+                  <li key={index} className="mb-1">
+                    [{formatDate(msg.timestamp)} {msg.name}] says: {msg.content}
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
