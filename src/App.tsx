@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import logo from "./assets/logo-universal.png";
 import { toast } from "sonner";
 import axios from "axios";
+import crypto from "crypto";
 
 interface Message {
   id: number;
@@ -15,6 +16,13 @@ interface Message {
   timestamp: number;
   isStored: boolean;
   wakuTimestamp: number;
+}
+
+interface CommunityMetadata {
+  name: string;
+  chatPublicKey: string;
+  chatPrivateKey: string;
+  contentTopic: string;
 }
 
 const SERVICE_ENDPOINT = "http://127.0.0.1:8645";
@@ -28,6 +36,8 @@ function App() {
   const [username, setUsername] = useState("");
   const [usernameInput, setUsernameInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [community, setCommunity] = useState<CommunityMetadata>();
+  const [communityName, setCommunityName] = useState("");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateMessage = (e: any) => setNewMessage(e.target.value);
@@ -113,6 +123,46 @@ function App() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateCommunityName = (e: any) => setCommunityName(e.target.value);
+
+  const createCommunity = (name: string) => {
+    // Generate a chat keypair for community
+    const chatKeypair = crypto.generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    });
+
+    console.log("chatKeypair", chatKeypair);
+
+    const contentTopic = crypto
+      .createHash("sha256")
+      .update(chatKeypair.publicKey)
+      .digest("hex");
+    console.log("contentTopic", contentTopic);
+
+    const metadata: CommunityMetadata = {
+      name: name,
+      chatPublicKey: chatKeypair.publicKey,
+      chatPrivateKey: chatKeypair.privateKey,
+      contentTopic: contentTopic,
+    };
+
+    const communities = localStorage.getItem("communities");
+    if (communities) {
+      const parsed = JSON.parse(communities);
+      parsed.push(metadata);
+      localStorage.setItem("communities", JSON.stringify(parsed));
+    } else {
+      localStorage.setItem("communities", JSON.stringify([metadata]));
+    }
+
+    setCommunity(metadata);
+
+    return metadata;
+  };
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString();
@@ -167,6 +217,24 @@ function App() {
                 ))}
               </ul>
             </ScrollArea>
+          </div>
+
+          <div>
+            <h1 className="text-xl font-bold mb-2">Community</h1>
+            <div className="flex items-center space-x-2">
+              <Input
+                className="w-[300px]"
+                value={communityName}
+                onChange={updateCommunityName}
+                placeholder="Input the community name"
+                autoComplete="off"
+                autoCorrect="off"
+              />
+              <Button className="w-50" onClick={() => createCommunity}>
+                Create Community
+              </Button>
+            </div>
+            <div></div>
           </div>
         </div>
       )}

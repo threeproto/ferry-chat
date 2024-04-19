@@ -1,30 +1,37 @@
 # Wachat
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The chat application use The Waku Network.
 
-Currently, two official plugins are available:
+## Why
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- a PoC to battle test The Waku Network.
+- create user acceptable with REST API / WebSocket
+- facilitate the developer adoption of Waku protocols
+- split concern to harden the protocol stabliity with C/S model
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+*Notes:* This project is still in the early stage of development, and the data is not persistent, use it at your own risk.*
 
-- Configure the top-level `parserOptions` property like this:
+## Features
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+### Community chat
+
+Basic flow: 
+- alice create a community by generate a chat keypair, content topic is the hash of the public key
+- alice share the private key with bob
+- bob derive the content topic from private key and subscribe to the topic as a member of the community
+- alice encrypt the message with the public key and send to the topic
+- bob get the message and decrypt with the private key
+
+Admin flow:
+- alice create a community by generate an admin keypair, content topic is the hash of the public chat key
+- alice send specific messages to the topic, bob don't have the key, so he can't send it.
+- todo...
+
+## Development
+
+```shell
+npm install
+
+npm run dev
 ```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
