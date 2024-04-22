@@ -14,6 +14,20 @@ interface Message {
   timestamp: number;
 }
 
+interface Cursor {
+  digest: {
+    data: string;
+  };
+  sender_time: number;
+  store_time: number;
+  pubsub_topic: string;
+}
+
+interface ResponseData {
+  messages: Message[];
+  cursor?: Cursor;
+}
+
 interface CommunityMetadata {
   name: string;
   contentTopic: string;
@@ -55,7 +69,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
+
+    const fetchAllMessages = async () => {
       try {
         const joinedContentTopics = joinedCommunities
           .map(
@@ -64,27 +79,68 @@ function App() {
           )
           .join(",");
 
-        console.log("joinedContentTopics", joinedContentTopics);
-        const response = await axios.get(
-          `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${joinedContentTopics}`
-        );
+        if (joinedContentTopics === "") {
+          return;
+        }
+
+        let url = `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${joinedContentTopics}&ascending=false`;
+        const response = await axios.get(url);
         console.log("Data:", response.data);
-        setMessages(
-          response.data.messages.sort(
+
+        setMessages((prev) => {
+          const filtered = response.data.messages.filter((msg: Message) => {
+            const found = prev.find(
+              (item) =>
+                item.payload === msg.payload &&
+                item.timestamp === msg.timestamp &&
+                item.contentTopic === msg.contentTopic
+            );
+            return !found;
+          });
+
+          const result = [...prev, ...filtered].sort(
             (a: Message, b: Message) => b.timestamp - a.timestamp
-          )
-        );
-        // Handle the received data as needed
+          );
+          return result;
+        });
+
+        handleCursor(url, response.data);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
 
-    const intervalId = setInterval(fetchData, 5000); // Trigger fetchData every 5 seconds
+    const handleCursor = async (baseUrl: string, data: ResponseData) => {
+      if (data.cursor) {
+        const url = `${baseUrl}&pubsubTopic=${data.cursor.pubsub_topic}&digest=${data.cursor.digest.data}&senderTime=${data.cursor.sender_time}&storeTime=${data.cursor.store_time}`;
 
-    // Cleanup function to clear interval when the component unmounts
+        const response = await axios.get(url);
+        setMessages((prev) => {
+          const filtered = response.data.messages.filter((msg: Message) => {
+            const found = prev.find(
+              (item) =>
+                item.payload === msg.payload &&
+                item.timestamp === msg.timestamp &&
+                item.contentTopic === msg.contentTopic
+            );
+            return !found;
+          });
+
+          const result = [...prev, ...filtered].sort(
+            (a: Message, b: Message) => b.timestamp - a.timestamp
+          );
+          return result;
+        });
+        handleCursor(baseUrl, response.data);
+      }
+    };
+
+    const intervalId = setInterval(fetchAllMessages, 5000); // Trigger fetchData every 5 seconds
+
     return () => clearInterval(intervalId);
   }, [joinedCommunities]);
+
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   const CreateUser = async (name: string) => {
     console.log("creating user");
@@ -105,9 +161,7 @@ function App() {
       timestamp: Math.floor(Date.now() / 1000),
     };
 
-    console.log("payload", payload);
     const bytes = btoa(JSON.stringify(payload));
-    console.log("bytes", bytes);
 
     const message = {
       payload: bytes,
@@ -115,7 +169,6 @@ function App() {
         community!.contentTopic
       }`,
     };
-    console.log("message", message);
     const response = await axios.post(
       `${SERVICE_ENDPOINT}/relay/v1/auto/messages`,
       JSON.stringify(message),
