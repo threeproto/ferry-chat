@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import axios from "axios";
-import { X } from "lucide-react";
+import { Github, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import logo from "./assets/logo-universal.png";
@@ -69,7 +69,11 @@ function App() {
           `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${joinedContentTopics}`
         );
         console.log("Data:", response.data);
-        setMessages(response.data.messages.sort((a: Message, b: Message) => b.timestamp - a.timestamp));
+        setMessages(
+          response.data.messages.sort(
+            (a: Message, b: Message) => b.timestamp - a.timestamp
+          )
+        );
         // Handle the received data as needed
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -202,7 +206,14 @@ function App() {
         <li key={index} className="mb-1">
           <div className="flex flex-row justify-between">
             <Label>
-              <span className={formtMsg.name == username ? "bg-green-200" : "bg-gray-300"}>{formtMsg.name}:</span> {formtMsg.content}
+              <span
+                className={
+                  formtMsg.name == username ? "bg-green-200" : "bg-gray-300"
+                }
+              >
+                {formtMsg.name}:
+              </span>{" "}
+              {formtMsg.content}
             </Label>
             <Label>{formatDate(formtMsg.timestamp)}</Label>
           </div>
@@ -262,8 +273,14 @@ function App() {
       <div className="flex flex-col gap-10 items-center justify-center h-screen">
         <img height={100} width={100} src={logo} alt="logo" />
 
-        <div className="absolute right-16 top-16 flex flex-row gap-2 items-center">
+        <div className="absolute right-36 top-16 flex flex-row gap-2 items-center">
           <Label className="text-md">Hello, {username}</Label>
+        </div>
+
+        <div className="absolute right-16 top-16 flex flex-row gap-2 items-center">
+          <a href="https://github.com/threeproto/wachat-web" target="_blank">
+            <Github />
+          </a>
         </div>
 
         {!username && (
