@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import logo from "./assets/logo-universal.png";
 import { toast } from "sonner";
 import axios from "axios";
-import crypto from "crypto";
+import { X } from "lucide-react";
 
 interface Message {
   payload: string;
@@ -14,24 +14,20 @@ interface Message {
 
 interface CommunityMetadata {
   name: string;
-  chatPublicKey: string;
-  chatPrivateKey: string;
   contentTopic: string;
 }
 
 const SERVICE_ENDPOINT = "https://waku.whisperd.tech";
-const PUBSUB_TOPIC = "waku/2/rs/1/0";
-const TEST_CONTENT_TOPIC = "/my-app/2/chatroom-2/proto";
+const COMMUNITY_CONTENT_TOPIC_PREFIX = "/universal/1/community";
 
 function App() {
-  const [newMessageHash, setNewMessageHash] = useState(
-    "Please enter your message below 👇"
-  );
   const [newMessage, setNewMessage] = useState("");
   const [username, setUsername] = useState("");
   const [usernameInput, setUsernameInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [community, setCommunity] = useState<CommunityMetadata>();
+  const [community, setCommunity] = useState<CommunityMetadata | undefined>(
+    undefined
+  );
   const [joinedCommunities, setJoinedCommunities] = useState<
     CommunityMetadata[]
   >([]);
@@ -41,46 +37,44 @@ function App() {
   const updateMessage = (e: any) => setNewMessage(e.target.value);
 
   useEffect(() => {
-    console.log("in init effect");
-
-    // EventsOn("newMessage", (msg: Message) => {
-    //   setMessages((prev) => [msg, ...prev]);
-    // });
-    // EventsOn("isOnline", (isOnline: boolean) => {
-    //   if (isOnline) {
-    //     toast.success("You are online.");
-    //   } else {
-    //     toast.warning("You are offline.");
-    //   }
-    // });
-
     const name = GetUser();
     setUsername(name);
+
+    const community = localStorage.getItem("community");
+    setCommunity(community ? JSON.parse(community) : undefined);
+    console.log("current community", community);
 
     const communities = localStorage.getItem("communities");
     if (communities) {
       const parsed = JSON.parse(communities);
       setJoinedCommunities(parsed);
+      console.log("joined communities", parsed);
+
+      const fetchData = async () => {
+        try {
+          const joinedContentTopics = parsed
+            .map((c: CommunityMetadata) => `${COMMUNITY_CONTENT_TOPIC_PREFIX}/${c.contentTopic}`)
+            .join(",");
+
+          console.log("joinedContentTopics", joinedContentTopics);
+          const response = await axios.get(
+            `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${joinedContentTopics}`
+          );
+          console.log("Data:", response.data);
+          setMessages(response.data.messages);
+          // Handle the received data as needed
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      };
+  
+      const intervalId = setInterval(fetchData, 5000); // Trigger fetchData every 5 seconds
+  
+      // Cleanup function to clear interval when the component unmounts
+      return () => clearInterval(intervalId);
     }
 
-    const fetchData = async () => {
-      try {
-        const joinedContentTopics = [];
-        const response = await axios.get(
-          `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${TEST_CONTENT_TOPIC}`
-        );
-        console.log("Data:", response.data);
-        setMessages(response.data.messages);
-        // Handle the received data as needed
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    const intervalId = setInterval(fetchData, 5000); // Trigger fetchData every 5 seconds
-
-    // Cleanup function to clear interval when the component unmounts
-    return () => clearInterval(intervalId);
+    
   }, []);
 
   const CreateUser = async (name: string) => {
@@ -108,7 +102,9 @@ function App() {
 
     const message = {
       payload: bytes,
-      contentTopic: TEST_CONTENT_TOPIC,
+      contentTopic: `${COMMUNITY_CONTENT_TOPIC_PREFIX}/${
+        community!.contentTopic
+      }`,
     };
     console.log("message", message);
     const response = await axios.post(
@@ -131,7 +127,6 @@ function App() {
     try {
       let result = await Send(newMessage);
       console.log("result", result);
-      setNewMessageHash(result);
       setNewMessage("");
     } catch (err) {
       toast.error(`Error happens: ${err}`);
@@ -152,26 +147,9 @@ function App() {
   const updateCommunityName = (e: any) => setCommunityName(e.target.value);
 
   const createCommunity = (name: string) => {
-    // Generate a chat keypair for community
-    const chatKeypair = crypto.generateKeyPairSync("rsa", {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: "spki", format: "pem" },
-      privateKeyEncoding: { type: "pkcs8", format: "pem" },
-    });
-
-    console.log("chatKeypair", chatKeypair);
-
-    const contentTopic = crypto
-      .createHash("sha256")
-      .update(chatKeypair.publicKey)
-      .digest("hex");
-    console.log("contentTopic", contentTopic);
-
     const metadata: CommunityMetadata = {
       name: name,
-      chatPublicKey: chatKeypair.publicKey,
-      chatPrivateKey: chatKeypair.privateKey,
-      contentTopic: contentTopic,
+      contentTopic: name,
     };
 
     const communities = localStorage.getItem("communities");
@@ -186,8 +164,22 @@ function App() {
     }
 
     setCommunity(metadata);
+    localStorage.setItem("community", JSON.stringify(metadata));
+    setCommunityName("");
 
     return metadata;
+  };
+
+  const deleteCommunity = (index: number) => () => {
+    const communities = localStorage.getItem("communities");
+    if (communities) {
+      const parsed = JSON.parse(communities);
+      parsed.splice(index, 1);
+      localStorage.setItem("communities", JSON.stringify(parsed));
+      setJoinedCommunities(parsed);
+      console.log("delete community", parsed);
+      setCommunity(undefined);
+    }
   };
 
   const decodeMsg = (index: number, msg: Message) => {
@@ -211,71 +203,88 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col gap-10 items-center justify-center h-screen">
-      <img height={100} width={100} src={logo} alt="logo" />
-
-      <div className="absolute right-16 top-6 flex flex-row gap-2 items-center">
-        <Label className="">Hello, {username}</Label>
-      </div>
-
-      {!username && (
-        <div className="flex w-full max-w-sm items-center space-x-2">
+    <div className="flex flex-row items-center justify-center gap-20">
+      {username && (
+        <div className="flex flex-col gap-2">
+          <h1 className="text-xl font-bold mb-2">Community</h1>
+          <ul>
+            {joinedCommunities.map((community, index) => (
+              <li
+                key={index}
+                onClick={() => setCommunity(joinedCommunities[index])}
+              >
+                <div className="flex flex-row items-center gap-1">
+                  <Label>{community.name}</Label>
+                  <X size={18} onClick={deleteCommunity(index)} />
+                </div>
+              </li>
+            ))}
+          </ul>
           <Input
-            value={usernameInput}
-            onChange={(e) => setUsernameInput(e.target.value)}
-            placeholder="Enter your username"
+            className="w-[200px]"
+            value={communityName}
+            onChange={updateCommunityName}
+            placeholder="Input the community name"
             autoComplete="off"
             autoCorrect="off"
           />
-          <Button className="w-32" onClick={createUser}>
-            Create
+          <Button
+            className="w-50"
+            onClick={() => createCommunity(communityName)}
+          >
+            Create Community
           </Button>
         </div>
       )}
 
-      {username && (
-        <div className="flex flex-col gap-10 items-center">
+      <div className="flex flex-col gap-10 items-center justify-center h-screen">
+        <img height={100} width={100} src={logo} alt="logo" />
+
+        <div className="absolute right-16 top-6 flex flex-row gap-2 items-center">
+          <Label className="">Hello, {username}</Label>
+        </div>
+
+        {!username && (
           <div className="flex w-full max-w-sm items-center space-x-2">
             <Input
-              value={newMessage}
-              onChange={updateMessage}
-              placeholder="Input your message"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+              placeholder="Enter your username"
               autoComplete="off"
               autoCorrect="off"
             />
-            <Button className="w-32" onClick={sendMessage}>
-              Send
+            <Button className="w-32" onClick={createUser}>
+              Create
             </Button>
           </div>
+        )}
 
-          <div>
-            <h1 className="text-xl font-bold mb-2">Message History</h1>
-            <ScrollArea className="h-[300px] w-[550px] rounded-md border p-4 bg-gray-100">
-              <ul className="text-sm">
-                {messages.map((msg, index) => decodeMsg(index, msg))}
-              </ul>
-            </ScrollArea>
-          </div>
-
-          <div>
-            <h1 className="text-xl font-bold mb-2">Community</h1>
-            <div className="flex items-center space-x-2">
+        {username && community && (
+          <div className="flex flex-col gap-10 items-center">
+            <div className="flex w-full max-w-sm items-center space-x-2">
               <Input
-                className="w-[300px]"
-                value={communityName}
-                onChange={updateCommunityName}
-                placeholder="Input the community name"
+                value={newMessage}
+                onChange={updateMessage}
+                placeholder="Input your message"
                 autoComplete="off"
                 autoCorrect="off"
               />
-              <Button className="w-50" onClick={() => createCommunity}>
-                Create Community
+              <Button className="w-32" onClick={sendMessage}>
+                Send
               </Button>
             </div>
-            <div></div>
+
+            <div>
+              <h1 className="text-xl font-bold mb-2">Message History</h1>
+              <ScrollArea className="h-[300px] w-[550px] rounded-md border p-4 bg-gray-100">
+                <ul className="text-sm">
+                  {messages.map((msg, index) => decodeMsg(index, msg))}
+                </ul>
+              </ScrollArea>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
