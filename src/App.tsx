@@ -2,14 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useState } from "react";
-import logo from "./assets/logo-universal.png";
-import { toast } from "sonner";
 import axios from "axios";
 import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import logo from "./assets/logo-universal.png";
 
 interface Message {
   payload: string;
+  contentTopic: string;
+  timestamp: number;
 }
 
 interface CommunityMetadata {
@@ -40,42 +42,45 @@ function App() {
     const name = GetUser();
     setUsername(name);
 
-    const community = localStorage.getItem("community");
-    setCommunity(community ? JSON.parse(community) : undefined);
-    console.log("current community", community);
+    const localCommunity = localStorage.getItem("community");
+    console.log("current community", localCommunity);
+    setCommunity(localCommunity ? JSON.parse(localCommunity) : undefined);
 
     const communities = localStorage.getItem("communities");
     if (communities) {
       const parsed = JSON.parse(communities);
       setJoinedCommunities(parsed);
       console.log("joined communities", parsed);
-
-      const fetchData = async () => {
-        try {
-          const joinedContentTopics = parsed
-            .map((c: CommunityMetadata) => `${COMMUNITY_CONTENT_TOPIC_PREFIX}/${c.contentTopic}`)
-            .join(",");
-
-          console.log("joinedContentTopics", joinedContentTopics);
-          const response = await axios.get(
-            `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${joinedContentTopics}`
-          );
-          console.log("Data:", response.data);
-          setMessages(response.data.messages);
-          // Handle the received data as needed
-        } catch (error) {
-          console.error("Error fetching data:", error);
-        }
-      };
-  
-      const intervalId = setInterval(fetchData, 5000); // Trigger fetchData every 5 seconds
-  
-      // Cleanup function to clear interval when the component unmounts
-      return () => clearInterval(intervalId);
     }
-
-    
   }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const joinedContentTopics = joinedCommunities
+          .map(
+            (c: CommunityMetadata) =>
+              `${COMMUNITY_CONTENT_TOPIC_PREFIX}/${c.contentTopic}`
+          )
+          .join(",");
+
+        console.log("joinedContentTopics", joinedContentTopics);
+        const response = await axios.get(
+          `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${joinedContentTopics}`
+        );
+        console.log("Data:", response.data);
+        setMessages(response.data.messages.sort((a: Message, b: Message) => b.timestamp - a.timestamp));
+        // Handle the received data as needed
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    const intervalId = setInterval(fetchData, 5000); // Trigger fetchData every 5 seconds
+
+    // Cleanup function to clear interval when the component unmounts
+    return () => clearInterval(intervalId);
+  }, [joinedCommunities]);
 
   const CreateUser = async (name: string) => {
     console.log("creating user");
@@ -179,17 +184,28 @@ function App() {
       setJoinedCommunities(parsed);
       console.log("delete community", parsed);
       setCommunity(undefined);
+      localStorage.removeItem("community");
     }
   };
 
   const decodeMsg = (index: number, msg: Message) => {
     try {
+      if (
+        msg.contentTopic !==
+        `${COMMUNITY_CONTENT_TOPIC_PREFIX}/${community?.contentTopic}`
+      ) {
+        return;
+      }
       const formtMsg = JSON.parse(atob(msg.payload));
 
       return (
         <li key={index} className="mb-1">
-          [{formatDate(formtMsg.timestamp)} {formtMsg.name}] says:{" "}
-          {formtMsg.content}
+          <div className="flex flex-row justify-between">
+            <Label>
+              <span className={formtMsg.name == username ? "bg-green-200" : "bg-gray-300"}>{formtMsg.name}:</span> {formtMsg.content}
+            </Label>
+            <Label>{formatDate(formtMsg.timestamp)}</Label>
+          </div>
         </li>
       );
     } catch (err) {
@@ -208,13 +224,19 @@ function App() {
         <div className="flex flex-col gap-2">
           <h1 className="text-xl font-bold mb-2">Community</h1>
           <ul>
-            {joinedCommunities.map((community, index) => (
+            {joinedCommunities.map((item, index) => (
               <li
                 key={index}
                 onClick={() => setCommunity(joinedCommunities[index])}
               >
                 <div className="flex flex-row items-center gap-1">
-                  <Label>{community.name}</Label>
+                  <Label
+                    className={
+                      item.name == community?.name ? "bg-green-200" : ""
+                    }
+                  >
+                    {item.name}
+                  </Label>
                   <X size={18} onClick={deleteCommunity(index)} />
                 </div>
               </li>
@@ -232,7 +254,7 @@ function App() {
             className="w-50"
             onClick={() => createCommunity(communityName)}
           >
-            Create Community
+            Join Community
           </Button>
         </div>
       )}
@@ -240,8 +262,8 @@ function App() {
       <div className="flex flex-col gap-10 items-center justify-center h-screen">
         <img height={100} width={100} src={logo} alt="logo" />
 
-        <div className="absolute right-16 top-6 flex flex-row gap-2 items-center">
-          <Label className="">Hello, {username}</Label>
+        <div className="absolute right-16 top-16 flex flex-row gap-2 items-center">
+          <Label className="text-md">Hello, {username}</Label>
         </div>
 
         {!username && (
@@ -277,7 +299,7 @@ function App() {
             <div>
               <h1 className="text-xl font-bold mb-2">Message History</h1>
               <ScrollArea className="h-[300px] w-[550px] rounded-md border p-4 bg-gray-100">
-                <ul className="text-sm">
+                <ul className="text-sm flex flex-col gap-1">
                   {messages.map((msg, index) => decodeMsg(index, msg))}
                 </ul>
               </ScrollArea>
