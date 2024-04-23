@@ -350,7 +350,7 @@ function App() {
   return (
     <div className="flex flex-row items-center justify-center gap-20">
       {username && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-5">
           <h1 className="text-xl font-bold mb-2">Community</h1>
           <ul>
             {joinedCommunities.map((item, index) => (
@@ -368,20 +368,23 @@ function App() {
               </li>
             ))}
           </ul>
-          <Input
-            className="w-[200px]"
-            value={communityName}
-            onChange={updateCommunityName}
-            placeholder="Input the community name"
-            autoComplete="off"
-            autoCorrect="off"
-          />
-          <Button
-            className="w-50"
-            onClick={() => createCommunity(communityName)}
-          >
-            Join Community
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Input
+              className="w-[200px]"
+              value={communityName}
+              onChange={updateCommunityName}
+              placeholder="Input the community name"
+              autoComplete="off"
+              autoCorrect="off"
+            />
+            <Label className="text-gray-500">For example: waku</Label>
+            <Button
+              className="w-50"
+              onClick={() => createCommunity(communityName)}
+            >
+              Join Community
+            </Button>
+          </div>
         </div>
       )}
 
