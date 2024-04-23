@@ -352,107 +352,109 @@ function App() {
   };
 
   return (
-    <div className="flex flex-row items-center justify-center gap-20">
-      {username && (
-        <div className="flex flex-col gap-5">
-          <h1 className="text-xl font-bold mb-2">Community</h1>
-          <ul>
-            {joinedCommunities.map((item, index) => (
-              <li key={index} onClick={() => selectCommunity(index)}>
-                <div className="flex flex-row items-center gap-1">
-                  <Label
-                    className={
-                      item.name == community?.name ? "bg-green-200" : ""
-                    }
-                  >
-                    {item.name}
-                  </Label>
-                  <X size={18} onClick={deleteCommunity(index)} />
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col gap-2">
-            <Input
-              className="w-[200px]"
-              value={communityName}
-              onChange={updateCommunityName}
-              placeholder="Input the community name"
-              autoComplete="off"
-              autoCorrect="off"
-            />
-            <Label className="text-gray-500">For example: waku</Label>
-            <Button
-              className="w-50"
-              onClick={() => createCommunity(communityName)}
-            >
-              Join Community
-            </Button>
-          </div>
-        </div>
-      )}
+    <div>
+      <div className="absolute right-36 top-16 flex flex-row gap-2 items-center">
+        <Label className="text-md">Hello, {username}</Label>
+      </div>
 
-      <div className="flex flex-col gap-10 items-center justify-center h-screen">
-        <img
-          height={100}
-          width={100}
-          src={logo}
-          alt="logo"
-          className="rounded-2xl"
-        />
+      <div className="absolute right-16 top-16 flex flex-row gap-2 items-center">
+        <a href="https://github.com/threeproto/ferry-chat" target="_blank">
+          <Github />
+        </a>
+      </div>
 
-        <div className="absolute right-36 top-16 flex flex-row gap-2 items-center">
-          <Label className="text-md">Hello, {username}</Label>
-        </div>
-
-        <div className="absolute right-16 top-16 flex flex-row gap-2 items-center">
-          <a href="https://github.com/threeproto/ferry-chat" target="_blank">
-            <Github />
-          </a>
-        </div>
-
-        <div className="absolute right-16 bottom-16">{settingsDialog()}</div>
-
-        {!username && (
-          <div className="flex w-full max-w-sm items-center space-x-2">
-            <Input
-              value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value)}
-              placeholder="Enter your username"
-              autoComplete="off"
-              autoCorrect="off"
-            />
-            <Button className="w-32" onClick={createUser}>
-              Create
-            </Button>
-          </div>
-        )}
-
-        {username && community && (
-          <div className="flex flex-col gap-10 items-center">
-            <div className="flex w-full max-w-sm items-center space-x-2">
+      <div className="absolute right-16 bottom-16">{settingsDialog()}</div>
+      
+      <div className="flex flex-col items-center justify-center gap-20 md:flex-row">
+        {username && (
+          <div className="flex flex-col gap-5 mt-36 md:mt-10">
+            <h1 className="text-xl font-bold mb-2">Community</h1>
+            <ul>
+              {joinedCommunities.map((item, index) => (
+                <li key={index} onClick={() => selectCommunity(index)}>
+                  <div className="flex flex-row items-center gap-1">
+                    <Label
+                      className={
+                        item.name == community?.name ? "bg-green-200" : ""
+                      }
+                    >
+                      {item.name}
+                    </Label>
+                    <X size={18} onClick={deleteCommunity(index)} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-col gap-2">
               <Input
-                value={newMessage}
-                onChange={updateMessage}
-                placeholder="Input your message"
+                className="w-[200px]"
+                value={communityName}
+                onChange={updateCommunityName}
+                placeholder="Input the community name"
                 autoComplete="off"
                 autoCorrect="off"
               />
-              <Button className="w-32" onClick={sendMessage}>
-                Send
+              <Label className="text-gray-500">For example: waku</Label>
+              <Button
+                className="w-50"
+                onClick={() => createCommunity(communityName)}
+              >
+                Join Community
               </Button>
-            </div>
-
-            <div>
-              <h1 className="text-xl font-bold mb-2">Message History</h1>
-              <ScrollArea className="h-[300px] w-[550px] rounded-md border p-4 bg-gray-100">
-                <ul className="text-sm flex flex-col gap-1">
-                  {messages.map((msg, index) => decodeMsg(index, msg))}
-                </ul>
-              </ScrollArea>
             </div>
           </div>
         )}
+
+        <div className="flex flex-col gap-10 items-center justify-center md:mt-36">
+          <img
+            height={100}
+            width={100}
+            src={logo}
+            alt="logo"
+            className="rounded-2xl"
+          />
+
+          {!username && (
+            <div className="flex w-full max-w-sm items-center space-x-2">
+              <Input
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="Enter your username"
+                autoComplete="off"
+                autoCorrect="off"
+              />
+              <Button className="w-32" onClick={createUser}>
+                Create
+              </Button>
+            </div>
+          )}
+
+          {username && community && (
+            <div className="flex flex-col gap-10 items-center">
+              <div className="flex w-full max-w-sm items-center space-x-2">
+                <Input
+                  value={newMessage}
+                  onChange={updateMessage}
+                  placeholder="Input your message"
+                  autoComplete="off"
+                  autoCorrect="off"
+                />
+                <Button className="w-32" onClick={sendMessage}>
+                  Send
+                </Button>
+              </div>
+
+              <div>
+                <h1 className="text-xl font-bold mb-2">Message History</h1>
+                <ScrollArea className="h-[300px] w-[550px] rounded-md border p-4 bg-gray-100">
+                  <ul className="text-sm flex flex-col gap-1">
+                    {messages.map((msg, index) => decodeMsg(index, msg))}
+                  </ul>
+                </ScrollArea>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
