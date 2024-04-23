@@ -388,17 +388,17 @@ function App() {
 
   return (
     <div>
-      <div className="absolute right-36 top-16 flex flex-row gap-2 items-center">
+      <div className="absolute right-36 top-16">
         <Label className="text-md">Hello, {username}</Label>
       </div>
 
-      <div className="absolute right-16 top-16 flex flex-row gap-2 items-center">
+      <div className="absolute right-24 top-16">
         <a href="https://github.com/threeproto/ferry-chat" target="_blank">
           <Github />
         </a>
       </div>
 
-      <div className="absolute right-16 bottom-16">{settingsDialog()}</div>
+      <div className="absolute right-16 top-16">{settingsDialog()}</div>
 
       {!username && (
         <div className="flex flex-col gap-5 items-center justify-center h-screen mt-[-60px]">
@@ -425,7 +425,7 @@ function App() {
         </div>
       )}
 
-      {username && joinedCommunities && (
+      {username && joinedCommunities.length > 0 && (
         <div className="flex md:flex-row flex-col h-screen items-center justify-center gap-10">
           <div className="flex flex-col gap-8 mt-36 md:mt-0">
             <div>
@@ -469,7 +469,7 @@ function App() {
 
                 <div>
                   <h1 className="text-xl font-bold mb-2">Message History</h1>
-                  <ScrollArea className="h-[300px] rounded-md border p-4 bg-gray-100">
+                  <ScrollArea className="h-[300px] md:w-[650px] rounded-md border p-4 bg-gray-100">
                     <ul className="text-sm flex flex-col gap-1">
                       {messages.map((msg, index) => decodeMsg(index, msg))}
                     </ul>
