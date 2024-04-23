@@ -1,4 +1,4 @@
-# Wachat
+# Ferry Chat
 
 The chat application use The Waku Network.
 

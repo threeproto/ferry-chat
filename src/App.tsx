@@ -399,7 +399,7 @@ function App() {
         </div>
 
         <div className="absolute right-16 top-16 flex flex-row gap-2 items-center">
-          <a href="https://github.com/threeproto/wachat-web" target="_blank">
+          <a href="https://github.com/threeproto/ferry-chat" target="_blank">
             <Github />
           </a>
         </div>
