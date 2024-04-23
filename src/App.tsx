@@ -232,6 +232,10 @@ function App() {
     const communities = localStorage.getItem("communities");
     if (communities) {
       const parsed = JSON.parse(communities);
+      if (parsed.find((item: CommunityMetadata) => item.name === name)) {
+        toast.warning("Community already exists.");
+        return;
+      }
       parsed.push(metadata);
       localStorage.setItem("communities", JSON.stringify(parsed));
       setJoinedCommunities(parsed);
