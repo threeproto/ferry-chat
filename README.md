@@ -34,6 +34,25 @@ npm install
 npm run dev
 ```
 
+## Caddy configuration
+
+```
+your-domain.com {
+        @cors_preflight {
+                method OPTIONS
+        }
+        respond @cors_preflight 204
+
+        header {
+                Access-Control-Allow-Origin *
+                Access-Control-Allow-Methods GET,POST,OPTIONS,HEAD,PATCH,PUT,DELETE
+                Access-Control-Allow-Headers User-Agent,Content-Type,X-Api-Key
+                Access-Control-Max-Age 86400
+        }
+        reverse_proxy :8645
+}
+```
+
 ## Depend APIs
 
 - /relay/v1/auto/messages
