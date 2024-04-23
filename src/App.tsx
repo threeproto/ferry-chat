@@ -1,9 +1,19 @@
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import axios from "axios";
-import { Github, X } from "lucide-react";
+import { Github, Settings, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import logo from "./assets/logo-ferry.png";
@@ -48,6 +58,7 @@ function App() {
     CommunityMetadata[]
   >([]);
   const [communityName, setCommunityName] = useState("");
+  const [apiEndpoint, setApiEndpoint] = useState(SERVICE_ENDPOINT);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateMessage = (e: any) => setNewMessage(e.target.value);
@@ -55,6 +66,11 @@ function App() {
   useEffect(() => {
     const name = GetUser();
     setUsername(name);
+
+    const endpoint = localStorage.getItem("apiEndpoint");
+    if (endpoint) {
+      setApiEndpoint(endpoint);
+    }
 
     const localCommunity = localStorage.getItem("community");
     console.log("current community", localCommunity);
@@ -69,7 +85,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-
     const fetchAllMessages = async () => {
       try {
         const joinedContentTopics = joinedCommunities
@@ -83,7 +98,7 @@ function App() {
           return;
         }
 
-        let url = `${SERVICE_ENDPOINT}/store/v1/messages?contentTopics=${joinedContentTopics}&ascending=false`;
+        let url = `${apiEndpoint}/store/v1/messages?contentTopics=${joinedContentTopics}&ascending=false`;
         const response = await axios.get(url);
         console.log("Data:", response.data);
 
@@ -138,7 +153,7 @@ function App() {
     const intervalId = setInterval(fetchAllMessages, 5000); // Trigger fetchData every 5 seconds
 
     return () => clearInterval(intervalId);
-  }, [joinedCommunities]);
+  }, [joinedCommunities, apiEndpoint]);
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -170,7 +185,7 @@ function App() {
       }`,
     };
     const response = await axios.post(
-      `${SERVICE_ENDPOINT}/relay/v1/auto/messages`,
+      `${apiEndpoint}/relay/v1/auto/messages`,
       JSON.stringify(message),
       {
         headers: {
@@ -245,6 +260,16 @@ function App() {
     }
   };
 
+  const selectCommunity = (index: number) => {
+    console.log("select community", joinedCommunities[index]);
+    setCommunity(joinedCommunities[index]);
+    localStorage.setItem("community", JSON.stringify(joinedCommunities[index]));
+  };
+
+  const saveSettings = () => {
+    localStorage.setItem("apiEndpoint", apiEndpoint);
+  };
+
   const decodeMsg = (index: number, msg: Message) => {
     try {
       if (
@@ -277,6 +302,46 @@ function App() {
     }
   };
 
+  const settingsDialog = () => {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Settings />
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Settings</DialogTitle>
+            <DialogDescription>
+              Make changes to your settings here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                REST API
+              </Label>
+              <Input
+                id="name"
+                onChange={(e) => setApiEndpoint(e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                defaultValue={apiEndpoint}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="submit" onClick={saveSettings}>
+                Save
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString();
@@ -289,10 +354,7 @@ function App() {
           <h1 className="text-xl font-bold mb-2">Community</h1>
           <ul>
             {joinedCommunities.map((item, index) => (
-              <li
-                key={index}
-                onClick={() => setCommunity(joinedCommunities[index])}
-              >
+              <li key={index} onClick={() => selectCommunity(index)}>
                 <div className="flex flex-row items-center gap-1">
                   <Label
                     className={
@@ -324,7 +386,13 @@ function App() {
       )}
 
       <div className="flex flex-col gap-10 items-center justify-center h-screen">
-        <img height={100} width={100} src={logo} alt="logo" className="rounded-2xl" />
+        <img
+          height={100}
+          width={100}
+          src={logo}
+          alt="logo"
+          className="rounded-2xl"
+        />
 
         <div className="absolute right-36 top-16 flex flex-row gap-2 items-center">
           <Label className="text-md">Hello, {username}</Label>
@@ -335,6 +403,8 @@ function App() {
             <Github />
           </a>
         </div>
+
+        <div className="absolute right-16 bottom-16">{settingsDialog()}</div>
 
         {!username && (
           <div className="flex w-full max-w-sm items-center space-x-2">
