@@ -6,7 +6,7 @@ import axios from "axios";
 import { Github, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import logo from "./assets/logo-universal.png";
+import logo from "./assets/logo-ferry.png";
 
 interface Message {
   payload: string;
@@ -324,7 +324,7 @@ function App() {
       )}
 
       <div className="flex flex-col gap-10 items-center justify-center h-screen">
-        <img height={100} width={100} src={logo} alt="logo" />
+        <img height={100} width={100} src={logo} alt="logo" className="rounded-2xl" />
 
         <div className="absolute right-36 top-16 flex flex-row gap-2 items-center">
           <Label className="text-md">Hello, {username}</Label>
