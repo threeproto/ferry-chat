@@ -98,7 +98,7 @@ function App() {
           return;
         }
 
-        let url = `${apiEndpoint}/store/v1/messages?contentTopics=${joinedContentTopics}&ascending=false`;
+        let url = `${apiEndpoint}/store/v1/messages?contentTopics=${joinedContentTopics}&ascending=false&pageSize=300`;
         const response = await axios.get(url);
         console.log("Data:", response.data);
 
