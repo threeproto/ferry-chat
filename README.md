@@ -5,16 +5,25 @@ The chat application use The Waku Network.
 ## Why
 
 - a PoC to battle test The Waku Network.
-- create user acceptable with REST API / WebSocket
+- create user experience with REST API / WebSocket
 - facilitate the developer adoption of Waku protocols
 - split concern to harden the protocol stabliity with C/S model
+- incubate app based sync protocol
 
 
-*Notes:* This project is still in the early stage of development, and the data is not persistent, use it at your own risk.*
+*Notes:* This project is still in the early stage of development, and the data is not persistent, you may lose the message history any time.
+
 
 ## Features
 
-### Community chat
+### Public community chat
+
+The public chat room is open to everyone who knows the community name. The content is not encrypted.
+
+## Plans
+
+- WebSocket to support real-time chat
+- End-to-end encryption for 1to1 chat
 
 
 ## Development
@@ -24,3 +33,12 @@ npm install
 
 npm run dev
 ```
+
+## Depend APIs
+
+- /relay/v1/auto/messages
+- /store/v1/messages
+
+## Known Issues
+
+- https://github.com/waku-org/nwaku/issues/2615, temporary fix is set pageSize to `300`.
